@@ -1,0 +1,44 @@
+from datetime import datetime
+import time
+import pandas as pd
+import openpyxl as xls
+import matplotlib
+import xlsxwriter
+
+Times = open(r"C:\Users\maly\PycharmProjects\pythonProject1\elp_log_MOD-2036_1", 'w')
+# for line in Times:
+#   print(line)
+
+Titles = ['Test Start', 'I S', 'I T', 'I F', 'TCS S', 'TCS T', 'TCS F', 'DC S', 'DC T', 'DC F', 'IQ S', 'IQ T', 'IQ F',
+          'A S', 'A F','siggen', 'cal_initial arguments']
+Datings = []
+Timings = []
+MOD = [''] * len(Titles)
+MOD[0] = "2036"
+
+for time in Times:
+    if time[0] == '@':
+        Timings.append((time[2:-2]))
+    if '--siggen' in time:
+      siggen = time[49:-1]
+    if '--qilo' in time:
+        qilo = time[75:]
+
+
+for t in Timings:
+        Datings.append(pd.Timestamp(year=int(t[0:4]),month=int(t[4:6]) ,day=int(t[6:8]),hour=int(t[9:11]),minute=int(t[11:13]),second=int(t[13:15])))
+
+
+
+Data = pd.DataFrame({"MOD#" : MOD})
+Data["Parameter"] = Titles
+Datings.append(siggen)
+Datings.append(qilo)
+Data["Timings (Sec.)"] = Datings
+
+
+print(Data)
+excelFile = pd.ExcelWriter("Calibration Volume Data Collection.xlsx")
+Data.to_excel(excelFile,index=False)
+excelFile.save()
+
