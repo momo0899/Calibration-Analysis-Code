@@ -5,7 +5,7 @@ import openpyxl as xls
 import matplotlib
 import xlsxwriter
 
-Times = open(r"C:\Users\maly\PycharmProjects\pythonProject1\elp_log_MOD-2036_1", 'w')
+Times = open(r"C:\Users\maly\PycharmProjects\pythonProject1\elp_log_MOD-2036_1", 'r')
 # for line in Times:
 #   print(line)
 
