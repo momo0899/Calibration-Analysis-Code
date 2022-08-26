@@ -4,9 +4,8 @@ import time
 import linecache
 import pandas as pd
 from xlwt import Workbook
-import matplotlib
+import matplotlib.pyplot as plt
 import xlsxwriter
-# h
 Datings = []
 Timings = []
 Passed_elp_log_files = []
@@ -16,10 +15,11 @@ Passed_elp_final_files = []
 Failed_files = []
 acceptanc_failure = []
 Initial_fails = []
-initial_indices = []
 data = []
+initial_indices = []
 invalid = []
 DataFrameList = []
+ListOfLists = []
 
 wb = Workbook()
 sheet1 = wb.add_sheet('Sheet 1')
@@ -27,12 +27,15 @@ Initial_breakings = {'CORRDB2 start':'','CORRDB2 finish':'','LDO start':'','LDO 
                      'LDO end':'','TX_PKDET start':'','TX_PKDET calibrating start':'','TX_PKDET calibrating end':'',
                       'TX_PKDET end':'','RX_PKDET start':'', 'RX_PKDET calibrating start':'','RX_PKDET calibrating end':'',
                      'RX_PKDET end':'','QILO start':'','QILO calibrating start':'', 'QILO calibrating end':'','QILO end':'',
-                     'TXUT start':'','TXUT calibrating start':'','TXUT calibrating end':'', 'TXUT end':'','CDATA start':'','CDATA end':'','initial end':''}
+                     'TXUT start':'','TXUT calibrating start':'','TXUT calibrating end':'', 'TXUT end':'','CDATA start':'','CDATA end':'','initial end':'',
+                     'I T':'', 'I F':'', 'TCS S':'', 'TCS T':'', 'DC S':'', 'DC T':'', 'IQ S':'', 'IQ T':''}
 
-Titles = {'MOD#':'','Path':'','CORRDB2':'','RESET 1':'','LDO':'','RESET 2':'','TX Pkdet':'','RX Pkdet':'','QILO':'','TXUT':'','CData':'',
-          'Test Start':'', 'I S':'', 'I T':'', 'I F':'', 'I r S':'', 'I r F':'', 'TCS S':'', 'TCS T':'',
-          'TCS F':'', 'TCS r S':'', 'TCS r F':'', 'DC S':'', 'DC T':'', 'DC F':'', 'IQ S':'', 'IQ T':'', 'IQ F':'',
+Titles = {'MOD#':'','Path':'','Test Start':'','CORRDB2':'','RESET 1':'','LDO':'','RESET 2':'','TX Pkdet':'','RX Pkdet':'','QILO':'','TXUT':'','CData':'',
+           'I':'', 'TCS':'',
+           'DC':'', 'IQ':'', 'I H':'','TCS H':'','DC H':'', 'IQ H':'',
           'A S':'', 'A F':'', 'siggen':'', 'cal_initial arguments':'', 'SRS':'', 'RRA':'', 'type':'', 'pass/fail':''}
+ToPlot = ['Test Start','CORRDB2','RESET 1','LDO','RESET 2','TX Pkdet',
+         'RX Pkdet','QILO','TXUT', 'CData','I','TCS','DC','IQ']
 DataFrameList.append(pd.DataFrame(list(Titles.keys())))
 def inputFile(Path, version):
 
@@ -103,77 +106,87 @@ def inputFile(Path, version):
 
             stamp1 = pd.Timestamp(year=int(t1[0:4]), month=int(t1[4:6]), day=int(t1[6:8]), hour=int(t1[9:11]),
                                   minute=int(t1[11:13]), second=int(t1[13:15]))
-            stamp2 = str(stamp1) + t1[15:]
+            stamp2 = str(stamp1) + t1[15:-4]
             Titles['Test Start'] = stamp2
 
             stamp3 = pd.Timestamp(year=int(t2[0:4]), month=int(t2[4:6]), day=int(t2[6:8]), hour=int(t2[9:11]),
                                   minute=int(t2[11:13]), second=int(t2[13:15]))
-            stamp4 = str(stamp3) + t2[15:]
-            Titles['I S'] = stamp4
+            stamp4 = str(stamp3) + t2[15:-4]
+            Initial_breakings['I S'] = stamp4
 
             stamp5 = pd.Timestamp(year=int(t3[0:4]), month=int(t3[4:6]), day=int(t3[6:8]), hour=int(t3[9:11]),
                                   minute=int(t3[11:13]), second=int(t3[13:15]))
-            stamp6 = str(stamp5) + t3[15:]
-            Titles['I T'] = stamp6
+            stamp6 = str(stamp5) + t3[15:-4]
+            Initial_breakings['I T'] = stamp6
+            Titles['I'] = str(datetime.strptime(Initial_breakings['I T'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(Initial_breakings['I S'], "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+
 
             stamp7 = pd.Timestamp(year=int(t4[0:4]), month=int(t4[4:6]), day=int(t4[6:8]), hour=int(t4[9:11]),
                                   minute=int(t4[11:13]), second=int(t4[13:15]))
-            stamp8 = str(stamp7) + t4[15:]
-            Titles['I F'] = stamp8
+            stamp8 = str(stamp7) + t4[15:-4]
+            Titles['I H'] = stamp8
 
             stamp9 = pd.Timestamp(year=int(t5[0:4]), month=int(t5[4:6]), day=int(t5[6:8]), hour=int(t5[9:11]),
                                   minute=int(t5[11:13]), second=int(t5[13:15]))
-            stamp10 = str(stamp9) + t5[15:]
-            Titles['TCS S'] = stamp10
+            stamp10 = str(stamp9) + t5[15:-4]
+            Initial_breakings['TCS S'] = stamp10
 
             stamp11 = pd.Timestamp(year=int(t6[0:4]), month=int(t6[4:6]), day=int(t6[6:8]), hour=int(t6[9:11]),
                                   minute=int(t6[11:13]), second=int(t6[13:15]))
-            stamp12 = str(stamp11) + t6[15:]
-            Titles['TCS T'] = stamp12
+            stamp12 = str(stamp11) + t6[15:-4]
+            Initial_breakings['TCS T'] = stamp12
+            Titles['TCS'] = Titles['IQ'] = str(datetime.strptime(Initial_breakings['TCS T'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(Initial_breakings['TCS S'], "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+
 
             stamp13 = pd.Timestamp(year=int(t7[0:4]), month=int(t7[4:6]), day=int(t7[6:8]), hour=int(t7[9:11]),
                                   minute=int(t7[11:13]), second=int(t7[13:15]))
-            stamp14 = str(stamp13) + t7[15:]
-            Titles['TCS F'] = stamp14
+            stamp14 = str(stamp13) + t7[15:-4]
+            Titles['TCS H'] = stamp14
 
             stamp15 = pd.Timestamp(year=int(t8[0:4]), month=int(t8[4:6]), day=int(t8[6:8]), hour=int(t8[9:11]),
                                   minute=int(t8[11:13]), second=int(t8[13:15]))
-            stamp16 = str(stamp15) + t8[15:]
-            Titles['DC S'] = stamp16
+            stamp16 = str(stamp15) + t8[15:-4]
+            Initial_breakings['DC S'] = stamp16
 
             stamp17 = pd.Timestamp(year=int(t9[0:4]), month=int(t9[4:6]), day=int(t9[6:8]), hour=int(t9[9:11]),
                                   minute=int(t9[11:13]), second=int(t9[13:15]))
-            stamp18 = str(stamp17) + t9[15:]
-            Titles['DC T'] = stamp18
+            stamp18 = str(stamp17) + t9[15:-4]
+            Initial_breakings['DC T'] = stamp18
+            Titles['DC'] = str(datetime.strptime(Initial_breakings['DC T'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(Initial_breakings['DC S'], "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+
+
 
             stamp19 = pd.Timestamp(year=int(t10[0:4]), month=int(t10[4:6]), day=int(t10[6:8]), hour=int(t10[9:11]),
                                   minute=int(t10[11:13]), second=int(t10[13:15]))
-            stamp20 = str(stamp19) + t10[15:]
-            Titles['DC F'] = stamp20
+            stamp20 = str(stamp19) + t10[15:-4]
+            Titles['DC H'] = stamp20
 
             stamp21 = pd.Timestamp(year=int(t11[0:4]), month=int(t11[4:6]), day=int(t11[6:8]), hour=int(t11[9:11]),
                                   minute=int(t11[11:13]), second=int(t11[13:15]))
-            stamp22 = str(stamp21) + t11[15:]
-            Titles['IQ S'] = stamp22
+            stamp22 = str(stamp21) + t11[15:-4]
+            Initial_breakings['IQ S'] = stamp22
 
             stamp23 = pd.Timestamp(year=int(t12[0:4]), month=int(t12[4:6]), day=int(t12[6:8]), hour=int(t12[9:11]),
                                   minute=int(t12[11:13]), second=int(t12[13:15]))
-            stamp24 = str(stamp23) + t12[15:]
-            Titles['IQ T'] = stamp24
+            stamp24 = str(stamp23) + t12[15:-4]
+            Initial_breakings['IQ T'] = stamp24
+            Titles['IQ'] = str(datetime.strptime(Initial_breakings['IQ T'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(Initial_breakings['IQ S'], "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+
+
 
             stamp25 = pd.Timestamp(year=int(t13[0:4]), month=int(t13[4:6]), day=int(t13[6:8]), hour=int(t13[9:11]),
                                   minute=int(t13[11:13]), second=int(t13[13:15]))
-            stamp26 = str(stamp25) + t13[15:]
-            Titles['IQ F'] = stamp26
+            stamp26 = str(stamp25) + t13[15:-4]
+            Titles['IQ H'] = stamp26
 
             stamp27 = pd.Timestamp(year=int(t14[0:4]), month=int(t14[4:6]), day=int(t14[6:8]), hour=int(t14[9:11]),
                                    minute=int(t14[11:13]), second=int(t14[13:15]))
-            stamp28 = str(stamp27) + t14[15:]
+            stamp28 = str(stamp27) + t14[15:-4]
             Titles['A S'] = stamp28
 
             stamp29 = pd.Timestamp(year=int(t15[0:4]), month=int(t15[4:6]), day=int(t15[6:8]), hour=int(t15[9:11]),
                                   minute=int(t15[11:13]), second=int(t15[13:15]))
-            stamp30 = str(stamp29) + t15[15:]
+            stamp30 = str(stamp29) + t15[15:-4]
             Titles['A F'] = stamp30
 
         Titles['siggen'] = linecache.getline(Passed_elp_log_files[pp],40)[49:-1]
@@ -201,107 +214,111 @@ def inputFile(Path, version):
 
                 stamp31 = pd.Timestamp(year=int(T1[0:4]), month=int(T1[4:6]), day=int(T1[6:8]), hour=int(T1[9:11]),
                                        minute=int(T1[11:13]), second=int(T1[13:15]))
-                stamp32 = str(stamp31) + T1[15:]
+                stamp32 = str(stamp31) + T1[15:-4]
 
 
                 stamp33 = pd.Timestamp(year=int(T2[0:4]), month=int(T2[4:6]), day=int(T2[6:8]), hour=int(T2[9:11]),
                                        minute=int(T2[11:13]), second=int(T2[13:15]))
-                stamp34 = str(stamp33) + T2[15:]
-                Titles['CORRDB2'] = datetime.strptime(stamp34, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp32, "%Y-%m-%d %H:%M:%S.%f")
+                stamp34 = str(stamp33) + T2[15:-4]
+                Titles['CORRDB2'] = str(datetime.strptime(stamp34, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp32, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
                 stamp35 = pd.Timestamp(year=int(T3[0:4]), month=int(T3[4:6]), day=int(T3[6:8]), hour=int(T3[9:11]),
                                        minute=int(T3[11:13]), second=int(T3[13:15]))
-                stamp36 = str(stamp35) + T3[15:]
+                stamp36 = str(stamp35) + T3[15:-4]
 
 
                 stamp37 = pd.Timestamp(year=int(T4[0:4]), month=int(T4[4:6]), day=int(T4[6:8]), hour=int(T4[9:11]),
                                        minute=int(T4[11:13]), second=int(T4[13:15]))
-                stamp38 = str(stamp37) + T4[15:]
-                Titles['RESET 1'] = datetime.strptime(stamp36, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp34, "%Y-%m-%d %H:%M:%S.%f")
+                stamp38 = str(stamp37) + T4[15:-4]
+                Titles['RESET 1'] = str(datetime.strptime(stamp36, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp34, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
                 stamp39 = pd.Timestamp(year=int(T5[0:4]), month=int(T5[4:6]), day=int(T5[6:8]), hour=int(T5[9:11]),
                                        minute=int(T5[11:13]), second=int(T5[13:15]))
-                stamp40 = str(stamp39) + T5[15:]
+                stamp40 = str(stamp39) + T5[15:-4]
 
 
                 stamp41 = pd.Timestamp(year=int(T6[0:4]), month=int(T6[4:6]), day=int(T6[6:8]), hour=int(T6[9:11]),
                                        minute=int(T6[11:13]), second=int(T6[13:15]))
-                stamp42 = str(stamp41) + T6[15:]
-                Titles['LDO'] = datetime.strptime(stamp38, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp36, "%Y-%m-%d %H:%M:%S.%f")
+                stamp42 = str(stamp41) + T6[15:-4]
+                Titles['LDO'] = str(datetime.strptime(stamp38, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp36, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
 
                 stamp43 = pd.Timestamp(year=int(T7[0:4]), month=int(T7[4:6]), day=int(T7[6:8]), hour=int(T7[9:11]),
                                        minute=int(T7[11:13]), second=int(T7[13:15]))
-                stamp44 = str(stamp43) + T7[15:]
-                Titles['RESET 2'] = datetime.strptime(stamp40, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp38, "%Y-%m-%d %H:%M:%S.%f")
+                stamp44 = str(stamp43) + T7[15:-4]
+                Titles['RESET 2'] = str(datetime.strptime(stamp40, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp38, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
                 stamp45 = pd.Timestamp(year=int(T8[0:4]), month=int(T8[4:6]), day=int(T8[6:8]), hour=int(T8[9:11]),
                                        minute=int(T8[11:13]), second=int(T8[13:15]))
-                stamp46 = str(stamp45) + T8[15:]
-                Titles['TX Pkdet'] = datetime.strptime(stamp42, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp40, "%Y-%m-%d %H:%M:%S.%f")
+                stamp46 = str(stamp45) + T8[15:-4]
+                Titles['TX Pkdet'] = str(datetime.strptime(stamp42, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp40, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
                 stamp47 = pd.Timestamp(year=int(T9[0:4]), month=int(T9[4:6]), day=int(T9[6:8]), hour=int(T9[9:11]),
                                        minute=int(T9[11:13]), second=int(T9[13:15]))
-                stamp48 = str(stamp47) + T9[15:]
+                stamp48 = str(stamp47) + T9[15:-4]
 
 
                 stamp49 = pd.Timestamp(year=int(T10[0:4]), month=int(T10[4:6]), day=int(T10[6:8]), hour=int(T10[9:11]),
                                        minute=int(T10[11:13]), second=int(T10[13:15]))
-                stamp50 = str(stamp49) + T10[15:]
-                Titles['RX Pkdet'] = datetime.strptime(stamp46, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp44, "%Y-%m-%d %H:%M:%S.%f")
+                stamp50 = str(stamp49) + T10[15:-4]
+                Titles['RX Pkdet'] = str(datetime.strptime(stamp46, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp44, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
 
                 stamp51 = pd.Timestamp(year=int(T11[0:4]), month=int(T11[4:6]), day=int(T11[6:8]), hour=int(T11[9:11]),
                                        minute=int(T11[11:13]), second=int(T11[13:15]))
-                stamp52 = str(stamp51) + T11[15:]
-                Titles['QILO'] = datetime.strptime(stamp50, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp48, "%Y-%m-%d %H:%M:%S.%f")
+                stamp52 = str(stamp51) + T11[15:-4]
+                Titles['QILO'] = str(datetime.strptime(stamp50, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp48, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
 
                 stamp53 = pd.Timestamp(year=int(T12[0:4]), month=int(T12[4:6]), day=int(T12[6:8]), hour=int(T12[9:11]),
                                        minute=int(T12[11:13]), second=int(T12[13:15]))
-                stamp54 = str(stamp53) + T12[15:]
-                Titles['TXUT'] =datetime.strptime(stamp54, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp52, "%Y-%m-%d %H:%M:%S.%f")
+                stamp54 = str(stamp53) + T12[15:-4]
+                Titles['TXUT'] = str(datetime.strptime(stamp54, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp52, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
 
 
                 stamp55 = pd.Timestamp(year=int(T13[0:4]), month=int(T13[4:6]), day=int(T13[6:8]), hour=int(T13[9:11]),
                                        minute=int(T13[11:13]), second=int(T13[13:15]))
-                stamp56 = str(stamp55) + T13[15:]
+                stamp56 = str(stamp55) + T13[15:-4]
 
 
 
                 stamp57 = pd.Timestamp(year=int(T14[0:4]), month=int(T14[4:6]), day=int(T14[6:8]), hour=int(T14[9:11]),
                                        minute=int(T14[11:13]), second=int(T14[13:15]))
-                stamp58 = str(stamp57) + T14[15:]
-                Titles['CData'] = datetime.strptime(stamp58, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp56, "%Y-%m-%d %H:%M:%S.%f")
-                DataFrameList.append(pd.DataFrame(list(Titles.values())))
-
-
+                stamp58 = str(stamp57) + T14[15:-4]
+                Titles['CData'] = str(datetime.strptime(stamp58, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp56, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+                lis = list(Titles.values())
+                DataFrameList.append(pd.DataFrame(lis))
+                ListOfLists.append([lis[0]] + lis[2:16])
 
             else:
                 invalid.append(ff)
 
+    df = pd.concat(DataFrameList,axis=1,ignore_index=True)
+    MOD_Numbers = sorted(set(df.iloc[0][1:]))
+    dict = {}
+    for mod in MOD_Numbers:
+        dict[mod] =[]
+    listy = list(dict.keys())
+    for listi in ListOfLists:
+        if listi[0] in listy:
+            dict[listi[0]].append(listi[1:])
+    excelFile2 = pd.ExcelWriter("Passed Files.xlsx")
+    df.to_excel(excelFile2, index=False,index_label=None)
+    excelFile2.save()
+    count = 0
+    for k,v in dict.items():
+      for V in v:
+          # datetimes =[]
+          # tt1 = datetime.strptime("00:00:00", "%H:%M:%S")
+          # for part in V[1:]:
+          #     tt1 += datetime.strptime(part, "%H:%M:%S")
+          #     datetimes.append(t)
+       plt.title(MOD_Numbers[count])
+       plt.plot(ToPlot,V)
+       plt.xticks(rotation=45)
+      count +=1
+      plt.show()
+    print(invalid)
 
-    df = pd.concat(DataFrameList,axis=1,join='inner')
-    print(df[0])
-    #excelFile2 = pd.ExcelWriter("Passed Files.xlsx")
-    #df.to_excel(excelFile2, index=False)
-    #excelFile2.save()
 
-
-
-        #print(datetime.strptime(Titles['A F'], "%Y-%m-%d %H:%M:%S.%f")-datetime.strptime(Titles['A S'], "%Y-%m-%d %H:%M:%S.%f"))
-
-
-    #for k,v in Titles.items():
-     # print(k,':',v)
-
-
-
-
-
-
-
-
-        #wb.save('Calibration Analysis.xlsx')
-
-print(inputFile(r'\\172.19.240.64\uhnder-nas\Modules\Working\Calico\Mukna_UR-RS2110-P4\ModuleData','0.81.1+2'))
+print(inputFile(r'\\172.19.240.64\uhnder-nas\Modules\Working\Calico\MRR_cervelo_mrr_080\ModuleData','0.81.1+2'))
