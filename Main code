@@ -1,3 +1,4 @@
+#Libraries and packages
 import os
 from datetime import datetime
 import time
@@ -6,6 +7,7 @@ import pandas as pd
 from xlwt import Workbook
 import matplotlib.pyplot as plt
 import xlsxwriter
+#lists to be filled with description
 Datings = []
 Timings = []
 Passed_elp_log_files = []
@@ -20,73 +22,87 @@ initial_indices = []
 invalid = []
 DataFrameList = []
 ListOfLists = []
-
+#Excel workbook and sheet created
 wb = Workbook()
 sheet1 = wb.add_sheet('Sheet 1')
+#Dictionary to collect the initail breakings data
 Initial_breakings = {'CORRDB2 start':'','CORRDB2 finish':'','LDO start':'','LDO calibrating start':'','LDO calibrating end':'',
                      'LDO end':'','TX_PKDET start':'','TX_PKDET calibrating start':'','TX_PKDET calibrating end':'',
                       'TX_PKDET end':'','RX_PKDET start':'', 'RX_PKDET calibrating start':'','RX_PKDET calibrating end':'',
                      'RX_PKDET end':'','QILO start':'','QILO calibrating start':'', 'QILO calibrating end':'','QILO end':'',
                      'TXUT start':'','TXUT calibrating start':'','TXUT calibrating end':'', 'TXUT end':'','CDATA start':'','CDATA end':'','initial end':'',
                      'I T':'', 'I F':'', 'TCS S':'', 'TCS T':'', 'DC S':'', 'DC T':'', 'IQ S':'', 'IQ T':''}
-
+#dictionary to collect the data of passed files that will be imported to the excel sheet
 Titles = {'MOD#':'','Path':'','Test Start':'','CORRDB2':'','RESET 1':'','LDO':'','RESET 2':'','TX Pkdet':'','RX Pkdet':'','QILO':'','TXUT':'','CData':'',
            'I':'', 'TCS':'',
            'DC':'', 'IQ':'', 'I H':'','TCS H':'','DC H':'', 'IQ H':'',
           'A S':'', 'A F':'', 'siggen':'', 'cal_initial arguments':'', 'SRS':'', 'RRA':'', 'type':'', 'pass/fail':''}
+#Titles to be put on the x-axis when it is plotted
 ToPlot = ['Test Start','CORRDB2','RESET 1','LDO','RESET 2','TX Pkdet',
          'RX Pkdet','QILO','TXUT', 'CData','I','TCS','DC','IQ']
+#DataFrame for the titles that will be imported to excel sheet.
 DataFrameList.append(pd.DataFrame(list(Titles.keys())))
+#Defining a function that will take the path of the file and the version wanted
 def inputFile(Path, version):
-
+    #the loop that searches throught the os to find the files that have the initial calibration
     for roots, directory, files in os.walk(Path):
         if roots[-23:-16] == 'INITIAL':
             extract_elp_final = roots + '\elp_final.txt'
             Initials.append(extract_elp_final)
+            #opens the file and checks if the test fails or not and add it to the initail failed files
             ini = open(extract_elp_final,'r')
             for i in ini:
                 if 'FAILED - f' in i:
                     Initial_fails.append(i)
+        #searches for the elp_log files
         for file in files:
          if file == 'elp_log.txt' and len(file) != 0:
             if roots[-17] == 'O':
               extract_elp_log = roots +'\\' + file
+              #opens the files and checks the version of the wanted and sees if it fails and it to the failed files or passes
               lines = open(extract_elp_log,'r')
               for line in lines:
                 if "SRS" in line and line[13:21] == version :
                  Passed_elp_log_files.append(extract_elp_log)
                 if 'FAILED' in line and extract_elp_log in Passed_elp_log_files:
                      Failed_files.append(extract_elp_log)
+    #filters out the failed files so Passed_elp_log_files only have the passed files
     for fail in Failed_files:
         if fail in Passed_elp_log_files:
             Passed_elp_log_files.remove(fail)
+    #filtering out the passed initial tests from the list with all Initials
     for initials in Initials:
          for passed in Passed_elp_log_files:
              if passed[:-12] == initials[:-38]:
                  Passed_elp_final_files.append(initials)
-
+    #gathering the mod numbers for the ones whose initials have failed
     Initial_fail = ['']*len(Failed_files)
     for failed in Failed_files:
         Mod.append(failed[-43:-39])
         Open = open(failed, 'r')
+        #checking the reason why it failed and adding the reason to another list
         for o in Open:
             if 'Acceptance failure:' in o:
                 acceptanc_failure.append(o[22:])
                 if 'INITIAL' in o:
                     initial_indices.append(Failed_files.index(failed))
     num = 0
+    #turning the reasons for the mods to fail into a dataframe and put next to those that failed
     for ind in initial_indices:
         Initial_fail[ind] = Initial_fails[num]
         num +=1
+    #creating the dataframe for the failed files
     data = {'MOD#':Mod,'Path':Failed_files,'Acceptance failure':acceptanc_failure,'Initial Failure':Initial_fail}
     DF = pd.DataFrame(data)
+    #Exporting the failed files to an excel sheet
     excelFile1 = pd.ExcelWriter("Failed Files.xlsx")
     DF.to_excel(excelFile1, index=False)
     excelFile1.save()
-
+    #Extracting the data from the initail files
     for pp in range(len(Passed_elp_final_files)):
         Titles['MOD#'] = Passed_elp_final_files[pp][-69:-65]
         Titles['Path'] = Passed_elp_log_files[pp]
+        #opening the elp_log files and extracting the data we need from specific lines
         with open(Passed_elp_log_files[pp],'r') as fp:
             t1 = linecache.getline(Passed_elp_log_files[pp], 2)[2:-2]
             t2 = linecache.getline(Passed_elp_log_files[pp], 11)[2:-2]
@@ -103,7 +119,7 @@ def inputFile(Path, version):
             t13 = linecache.getline(Passed_elp_log_files[pp], 45)[2:-2]
             t14 = linecache.getline(Passed_elp_log_files[pp], 53)[9:-1]
             t15 = linecache.getline(Passed_elp_log_files[pp], 54)[2:-2]
-
+            #converting the the initial timings to a timestamp and giving value to the Test Titles
             stamp1 = pd.Timestamp(year=int(t1[0:4]), month=int(t1[4:6]), day=int(t1[6:8]), hour=int(t1[9:11]),
                                   minute=int(t1[11:13]), second=int(t1[13:15]))
             stamp2 = str(stamp1) + t1[15:-4]
@@ -188,13 +204,14 @@ def inputFile(Path, version):
                                   minute=int(t15[11:13]), second=int(t15[13:15]))
             stamp30 = str(stamp29) + t15[15:-4]
             Titles['A F'] = stamp30
-
+        #adding the other values in the Titles dicitionary besided the timings
         Titles['siggen'] = linecache.getline(Passed_elp_log_files[pp],40)[49:-1]
         Titles['cal_initial arguments'] = linecache.getline(Passed_elp_log_files[pp],13)[75:-1]
         Titles['SRS'] = linecache.getline(Passed_elp_log_files[pp],4)[9:-1]
         Titles['RRA'] = linecache.getline(Passed_elp_log_files[pp],5)[9:-1]
         Titles['type'] = linecache.getline(Passed_elp_log_files[pp],9)[14:-1]
         Titles['pass/fail'] = linecache.getline(Passed_elp_log_files[pp],48)[18:-1]
+        # opening the initial files and extracting the data we need from specific lines
         with open(Passed_elp_final_files[pp],'r') as ff:
             if len(ff.readlines()) == 46:
                 T1= linecache.getline(Passed_elp_final_files[pp],2)[2:-2]
@@ -211,7 +228,7 @@ def inputFile(Path, version):
                 T12= linecache.getline(Passed_elp_final_files[pp],37)[9:-1]
                 T13= linecache.getline(Passed_elp_final_files[pp],42)[2:-2]
                 T14= linecache.getline(Passed_elp_final_files[pp],44)[2:-2]
-
+                # converting the the initial timings to a timestamp and giving value to the Test Titles
                 stamp31 = pd.Timestamp(year=int(T1[0:4]), month=int(T1[4:6]), day=int(T1[6:8]), hour=int(T1[9:11]),
                                        minute=int(T1[11:13]), second=int(T1[13:15]))
                 stamp32 = str(stamp31) + T1[15:-4]
@@ -286,26 +303,33 @@ def inputFile(Path, version):
                                        minute=int(T14[11:13]), second=int(T14[13:15]))
                 stamp58 = str(stamp57) + T14[15:-4]
                 Titles['CData'] = str(datetime.strptime(stamp58, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(stamp56, "%Y-%m-%d %H:%M:%S.%f"))[:-4]
+                #gathering the values in a list and convert it to a dataframe and add it to another big list
                 lis = list(Titles.values())
                 DataFrameList.append(pd.DataFrame(lis))
                 ListOfLists.append([lis[0]] + lis[2:16])
 
             else:
+                #making list of invalid files that may have missing tests
                 invalid.append(ff)
-
+    #concatenating the dataframes to one with no repeated indexing
     df = pd.concat(DataFrameList,axis=1,ignore_index=True)
+    #Exporting the Passed Files to an excel sheet
+    excelFile2 = pd.ExcelWriter("Passed Files.xlsx")
+    df.to_excel(excelFile2, index=False, index_label=None)
+    excelFile2.save()
     MOD_Numbers = sorted(set(df.iloc[0][1:]))
     dict = {}
+    #creating a dictionary with the mods without repeatation as keys and it's values are the data after each test
     for mod in MOD_Numbers:
         dict[mod] =[]
     listy = list(dict.keys())
+    #filling up each mod in the dictionary with the data for each of it's callibration
     for listi in ListOfLists:
         if listi[0] in listy:
             dict[listi[0]].append(listi[1:])
-    excelFile2 = pd.ExcelWriter("Passed Files.xlsx")
-    df.to_excel(excelFile2, index=False,index_label=None)
-    excelFile2.save()
+
     count = 0
+    #Plotting the data of each module in a seperate plot
     for k,v in dict.items():
       for V in v:
           # datetimes =[]
@@ -318,7 +342,8 @@ def inputFile(Path, version):
        plt.xticks(rotation=45)
       count +=1
       plt.show()
+    #printing out the invalid Tests
     print(invalid)
 
-
-print(inputFile(r'\\172.19.240.64\uhnder-nas\Modules\Working\Calico\MRR_cervelo_mrr_080\ModuleData','0.81.1+2'))
+#Calling the Function
+print(inputFile(r'\\172.19.240.64\uhnder-nas\Modules\Working\Calico\Mukna_UR-RS2110-P4\ModuleData','0.81.1+2'))
