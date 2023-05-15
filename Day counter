@@ -1,0 +1,11 @@
+from datetime import date
+
+def count_days(start_date):
+    today = date.today()
+    days_passed = (today - start_date).days
+    return days_passed
+
+# Example usage:
+start_date = date(2023, 1, 8)  # Replace with your desired start date
+days_count = count_days(start_date)
+print("Number of days passed:", days_count)
